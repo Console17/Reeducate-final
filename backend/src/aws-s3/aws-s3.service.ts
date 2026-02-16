@@ -12,8 +12,8 @@ type UploadFileParams = {
 
 const bucketName = process.env.AWS_BUCKET_NAME;
 const region = process.env.AWS_REGION;
-const accessKeyId = process.env.AWS_ACCESS_KEY;
-const secretAccessKey = process.env.AWS_SECRET_KEY;
+const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
 
 if (!bucketName || !region || !accessKeyId || !secretAccessKey) {
   throw new Error("AWS S3 env vars are missing");
