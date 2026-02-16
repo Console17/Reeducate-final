@@ -1,6 +1,5 @@
 import express, { type Request, type Response } from "express";
 import swaggerUi from "swagger-ui-express";
-// import logMiddleware from "./middlewares/admin.middleware.js";
 import dbCondig from "./config/db.config.js";
 import { swaggerSpec } from "./config/swagger.js";
 import authRouter from "./auth/auth.controller.js";
@@ -21,8 +20,6 @@ app.get("/", (req: Request, res: Response) => {
   res.send("hello");
 });
 
-dbCondig().then(() => {
-  app.listen(3000, () => {
-    console.log("server running on http://localhost:3000");
-  });
-});
+dbCondig().catch((err) => console.error("DB connection error:", err));
+
+export default app;
