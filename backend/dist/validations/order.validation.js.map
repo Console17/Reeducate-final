@@ -1,1 +1,0 @@
-{"version":3,"file":"order.validation.js","sourceRoot":"","sources":["../../src/validations/order.validation.ts"],"names":[],"mappings":"AAAA,OAAO,GAAG,MAAM,KAAK,CAAC;AAEtB,MAAM,uBAAuB,GAAG,GAAG,CAAC,MAAM,CAAC;IACzC,MAAM,EAAE,GAAG,CAAC,MAAM,EAAE;SACjB,KAAK,CAAC,WAAW,EAAE,SAAS,EAAE,WAAW,EAAE,UAAU,CAAC;SACtD,QAAQ,EAAE;CACd,CAAC,CAAC;AAEH,eAAe,uBAAuB,CAAC"}
