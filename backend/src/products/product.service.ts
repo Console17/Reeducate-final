@@ -59,7 +59,7 @@ async function getAllProducts(req: Request, res: Response) {
 
   if (query) {
     await sleep(300);
-    const regex = new RegExp(query, "i");
+    const regex = new RegExp(`^${query}`, "i");
     const products = await productModel.find({
       title: regex,
     });
@@ -166,7 +166,7 @@ async function updateProduct(req: Request, res: Response) {
     }
 
     const updatedProduct = await productModel.findByIdAndUpdate(id, updates, {
-      new: true,
+      returnDocument: "after",
     });
 
     if (!updatedProduct) {

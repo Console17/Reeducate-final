@@ -1,47 +1,47 @@
 import { Router } from "express";
-import { ProductService } from "./product.service.js";
-import validateMiddleware from "../middlewares/validate.middleware.js";
-import isValidMongoId from "../middlewares/isValidMongoId.middleware.js";
-import {
-  productCreateSchema,
-  productUpdateSchema,
-} from "../validations/product.validation.js";
-import isAdminMiddleware from "../middlewares/isAdmin.middleware.js";
+import { OrderService } from "./order.service.js";
 import isAuthMiddleware from "../middlewares/isAuth.middleware.js";
-import uploadMiddleware from "../middlewares/upload.middleware.js";
+import isAdminMiddleware from "../middlewares/isAdmin.middleware.js";
+import isValidMongoId from "../middlewares/isValidMongoId.middleware.js";
+import validateMiddleware from "../middlewares/validate.middleware.js";
+import updateOrderStatusSchema from "../validations/order.validation.js";
 
-const productRouter = Router();
+const orderRouter = Router();
 
 /**
  * @openapi
- * /products:
+ * /orders:
  *   get:
- *     tags: [Products]
- *     summary: List products
- *     parameters:
- *       - in: query
- *         name: t
- *         schema:
- *           type: string
- *         description: Optional search term for product title
+ *     tags: [Orders]
+ *     summary: List orders (admin sees all)
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Product list
+ *         description: Order list
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 $ref: "#/components/schemas/Product"
+ *                 $ref: "#/components/schemas/Order"
+ *       401:
+ *         description: Missing or invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ErrorResponse"
  */
-productRouter.get("/", ProductService.getAllProducts);
+orderRouter.get("/", isAuthMiddleware, OrderService.getOrders);
 
 /**
  * @openapi
- * /products/{id}:
+ * /orders/{id}:
  *   get:
- *     tags: [Products]
- *     summary: Get product by id
+ *     tags: [Orders]
+ *     summary: Get order by id
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -50,49 +50,102 @@ productRouter.get("/", ProductService.getAllProducts);
  *           type: string
  *     responses:
  *       200:
- *         description: Product details
+ *         description: Order details
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/Product"
+ *               $ref: "#/components/schemas/Order"
  *       400:
  *         description: Invalid id
  *         content:
  *           application/json:
  *             schema:
  *               $ref: "#/components/schemas/ErrorResponse"
+ *       401:
+ *         description: Missing or invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ErrorResponse"
+ *       403:
+ *         description: Permission denied
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ErrorResponse"
  *       404:
- *         description: Product not found
+ *         description: Order not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: "#/components/schemas/ErrorResponse"
  */
-productRouter.get("/:id", isValidMongoId, ProductService.getProductById);
+orderRouter.get(
+  "/:id",
+  isAuthMiddleware,
+  isValidMongoId,
+  OrderService.getOrderById,
+);
 
 /**
  * @openapi
- * /products:
+ * /orders/checkout:
  *   post:
- *     tags: [Products]
- *     summary: Create a product (admin)
+ *     tags: [Orders]
+ *     summary: Create an order from cart
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             $ref: "#/components/schemas/ProductCreateForm"
  *     responses:
  *       201:
- *         description: Product created
+ *         description: Order created
  *         content:
  *           application/json:
  *             schema:
- *               $ref: "#/components/schemas/Product"
+ *               $ref: "#/components/schemas/Order"
  *       400:
- *         description: Validation or upload error
+ *         description: Cart empty or invalid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ErrorResponse"
+ *       401:
+ *         description: Missing or invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ErrorResponse"
+ */
+orderRouter.post("/checkout", isAuthMiddleware, OrderService.checkout);
+
+/**
+ * @openapi
+ * /orders/{id}/status:
+ *   patch:
+ *     tags: [Orders]
+ *     summary: Update order status (admin)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: "#/components/schemas/UpdateOrderStatusInput"
+ *     responses:
+ *       200:
+ *         description: Updated order
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/Order"
+ *       400:
+ *         description: Invalid id or validation error
  *         content:
  *           application/json:
  *             schema:
@@ -109,22 +162,28 @@ productRouter.get("/:id", isValidMongoId, ProductService.getProductById);
  *           application/json:
  *             schema:
  *               $ref: "#/components/schemas/ErrorResponse"
+ *       404:
+ *         description: Order not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ErrorResponse"
  */
-productRouter.post(
-  "/",
+orderRouter.patch(
+  "/:id/status",
   isAuthMiddleware,
   isAdminMiddleware,
-  uploadMiddleware.array("images", 5),
-  validateMiddleware(productCreateSchema),
-  ProductService.createProduct,
+  isValidMongoId,
+  validateMiddleware(updateOrderStatusSchema),
+  OrderService.updateOrderStatus,
 );
 
 /**
  * @openapi
- * /products/{id}:
+ * /orders/{id}:
  *   delete:
- *     tags: [Products]
- *     summary: Delete a product (admin)
+ *     tags: [Orders]
+ *     summary: Delete an order (admin)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -135,7 +194,7 @@ productRouter.post(
  *           type: string
  *     responses:
  *       200:
- *         description: Product deleted
+ *         description: Order deleted
  *         content:
  *           application/json:
  *             schema:
@@ -159,80 +218,18 @@ productRouter.post(
  *             schema:
  *               $ref: "#/components/schemas/ErrorResponse"
  *       404:
- *         description: Product not found
+ *         description: Order not found
  *         content:
  *           application/json:
  *             schema:
  *               $ref: "#/components/schemas/ErrorResponse"
  */
-productRouter.delete(
+orderRouter.delete(
   "/:id",
   isAuthMiddleware,
   isAdminMiddleware,
   isValidMongoId,
-  ProductService.deleteProduct,
+  OrderService.deleteOrder,
 );
 
-/**
- * @openapi
- * /products/{id}:
- *   patch:
- *     tags: [Products]
- *     summary: Update a product (admin)
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             $ref: "#/components/schemas/ProductUpdateForm"
- *     responses:
- *       200:
- *         description: Product updated
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/Product"
- *       400:
- *         description: Invalid id or validation error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ErrorResponse"
- *       401:
- *         description: Missing or invalid token
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ErrorResponse"
- *       403:
- *         description: Admin access required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ErrorResponse"
- *       404:
- *         description: Product not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: "#/components/schemas/ErrorResponse"
- */
-productRouter.patch(
-  "/:id",
-  isAuthMiddleware,
-  isAdminMiddleware,
-  isValidMongoId,
-  uploadMiddleware.array("images", 5),
-  validateMiddleware(productUpdateSchema),
-  ProductService.updateProduct,
-);
-
-export default productRouter;
+export default orderRouter;
